@@ -73,6 +73,76 @@ The ETL script inserts data into a MySQL table (`market_prices`) with upsert log
 - `return`, `7d_MA`, `30d_MA`  
 - `load_timestamp`
 
+## ☁️ Google Cloud SQL Setup (Optional)
+
+To use this ETL pipeline with a Google Cloud SQL (MySQL) instance:
+
+### 1. Create a Cloud SQL Instance
+
+- Go to [Google Cloud Console](https://console.cloud.google.com/sql)
+- Click **"Create Instance"**
+- Choose **MySQL**
+- Set:
+  - Instance ID (e.g., `market-data-instance`)
+  - Root password
+  - Region and zone
+- Click **Create**
+
+### 2. Create a Database
+
+- After the instance is ready, go to the instance dashboard
+- Click **"Databases"** → **"Create database"**
+- Name it (e.g., `market_data`)
+
+### 3. Create a User (Optional)
+
+- Go to **"Users"** tab
+- Click **"Add user account"**
+- Set username and password
+
+### 4. Enable Public IP Access (for local testing)
+
+- Go to **"Connections"** tab
+- Add your IP address under **"Authorized networks"**
+
+### 5. Create the Table
+
+Once your database is ready, connect using a MySQL client (e.g., Cloud Shell, MySQL Workbench, or `mysql` CLI) and run the following SQL to create the required table:
+
+```sql
+CREATE TABLE market_prices (
+    Date DATE NOT NULL,
+    ticker VARCHAR(20) NOT NULL,
+    asset_name VARCHAR(50),
+    asset_type VARCHAR(20),
+    Open DOUBLE,
+    High DOUBLE,
+    Low DOUBLE,
+    Close DOUBLE,
+    Volume DOUBLE,
+    return DOUBLE,
+    7d_MA DOUBLE,
+    30d_MA DOUBLE,
+    load_timestamp DATETIME,
+    PRIMARY KEY (Date, ticker)
+);
+```
+
+This schema matches the ETL output and uses a composite primary key to prevent duplicate entries.
+
+### 6. Connect from Python
+
+Update your `mysql.connector.connect()` block in the script:
+
+```python
+conn = mysql.connector.connect(
+    host='YOUR_INSTANCE_IP',
+    database='market_data',
+    user='your_user',
+    password='your_password'
+)
+```
+
 ---
 
 ## 🧾 Excel Integration
