@@ -1,0 +1,47 @@
+## ⏰ Scheduling with Crontab
+
+To automate the ETL script to run daily, use `cron` — a built-in Linux scheduler.
+
+### 1. Open Crontab Editor
+
+```bash
+crontab -e
+```
+
+This opens your user's cron configuration file.
+
+### 2. Add a Cron Job
+
+To run the ETL script every day at 8 AM:
+
+```bash
+0 8 * * * /usr/bin/python3 /full/path/to/etl/etl_fetch_sql.py >> /full/path/to/etl/etl.log 2>&1
+```
+
+- Replace `/full/path/to/` with the actual path to your project directory.
+- `>> etl.log 2>&1` appends both standard output and errors to the log file.
+
+### 3. Save and Exit
+
+- If using `nano`: press `Ctrl + O` to save, then `Ctrl + X` to exit.
+- If using `vi`: press `Esc`, then type `:wq` and hit Enter.
+
+### 4. Verify Your Cron Job
+
+```bash
+crontab -l
+```
+
+You should see your scheduled job listed.
+
+### 📝 Logging Notes
+
+- Logs are saved to `etl/etl.log`
+- Each run appends timestamped entries for success, failure, and MySQL status
+- To monitor logs live:
+
+```bash
+tail -f /full/path/to/etl/etl.log
+```
+
+> 💡 Tip: Use logging to debug issues, track ETL performance, and verify successful ingestion.
