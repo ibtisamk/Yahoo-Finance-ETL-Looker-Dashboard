@@ -1,0 +1,77 @@
+```python
+#!/usr/bin/env python3
+from datetime import datetime
+import yfinance as yf
+import pandas as pd
+import sys
+
+print("=" * 80)
+print(f"🕓 Cron triggered at {datetime.now()}")
+print("📥 Pulling live market data...")
+
+try:
+    # 1️⃣ Define tickers and asset types
+    tickers = {
+        "GBPUSD=X": ("GBP/USD", "currency"),
+        "EURUSD=X": ("EUR/USD", "currency"),
+        "USDJPY=X": ("JPY/USD", "currency"),
+        "USDCNY=X": ("CNY/USD", "currency"),
+        "USDINR=X": ("INR/USD", "currency"),
+        "GC=F": ("Gold Futures", "commodity"),
+        "CL=F": ("Crude Oil", "commodity"),
+        "BTC-USD": ("Bitcoin/USD", "crypto"),
+        "ETH-USD": ("Ethereum/USD", "crypto")
+    }
+
+    # 2️⃣ Download market data
+    data = yf.download(list(tickers.keys()), period="6mo", interval="1d", group_by='ticker', auto_adjust=True)
+
+    # 3️⃣ Flatten and label data
+    frames = []
+    for ticker, (name, asset_type) in tickers.items():
+        if ticker not in data or data[ticker].empty:
+            continue
+
+        df = data[ticker].reset_index()
+
+        # 🔁 Invert USD-based tickers to get Currency/USD
+        if ticker.startswith("USD") and ticker.endswith("=X"):
+            for col in ["Open", "High", "Low", "Close"]:
+                df[col] = 1 / df[col]
+
+        df["ticker"] = ticker
+        df["asset_name"] = name
+        df["asset_type"] = asset_type
+
+        frames.append(df)
+
+    if not frames:
+        raise ValueError("No valid market data retrieved.")
+
+    df_all = pd.concat(frames)
+
+    # 4️⃣ Add metrics
+    df_all["return"] = df_all.groupby("ticker")["Close"].pct_change(fill_method=None)
+    df_all["7d_MA"] = df_all.groupby("ticker")["Close"].transform(lambda x: x.rolling(7).mean())
+    df_all["30d_MA"] = df_all.groupby("ticker")["Close"].transform(lambda x: x.rolling(30).mean())
+
+    # 5️⃣ Cleanup
+    df_all = df_all[[
+        "Date", "ticker", "asset_name", "asset_type", "Open", "High", "Low", "Close", "Volume",
+        "return", "7d_MA", "30d_MA"
+    ]]
+    df_all.dropna(subset=["Close"], inplace=True)
+    df_all["load_timestamp"] = datetime.now()
+
+    # 6️⃣ Export to Excel
+    output_file = "market_data.xlsx"
+    df_all.to_excel(output_file, index=False, engine="openpyxl")
+    print(f"✅ Data exported to {output_file}")
+
+except Exception as e:
+    print(f"❌ ETL failed: {e}", file=sys.stderr)
+
+finally:
+    print(f"✅ ETL script ran successfully at {datetime.now()}")
+    print("=" * 80)
+```
